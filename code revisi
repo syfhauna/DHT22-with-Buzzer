@@ -1,0 +1,82 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "DHT.h"
+
+// Konfigurasi LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Alamat I2C untuk LCD 16x2
+
+// Konfigurasi DHT
+#define DHTPIN 2          // Pin digital untuk DHT
+#define DHTTYPE DHT22     // Gunakan tipe sensor DHT22
+
+// Konfigurasi Buzzer
+#define BUZZER_PIN 8      // Pin digital untuk buzzer
+
+// Inisialisasi sensor DHT
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  // Inisialisasi Serial Monitor
+  Serial.begin(9600);
+  
+  // Inisialisasi DHT
+  dht.begin();
+  
+  // Inisialisasi LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Initializing...");
+  delay(2000);
+
+  // Inisialisasi Buzzer
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW); // Pastikan buzzer mati saat awal
+}
+
+void loop() {
+  delay(2000);  // Tunda waktu 2 detik untuk setiap pembacaan sensor
+  
+  // Membaca data sensor DHT
+  float humidity = dht.readHumidity();          // Membaca kelembapan
+  float temperatureC = dht.readTemperature();  // Membaca suhu (Celcius)
+  float temperatureF = dht.readTemperature(true); // Membaca suhu (Fahrenheit)
+
+  // Periksa apakah data valid
+  if (isnan(humidity) || isnan(temperatureC) || isnan(temperatureF)) {
+    Serial.println(F("Gagal membaca data sensor DHT!"));
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Sensor Error!");
+    return;
+  }
+
+  // Tampilkan data di Serial Monitor
+  Serial.print(F("Humidity: "));
+  Serial.print(humidity);
+  Serial.print(F("%  Temperature: "));
+  Serial.print(temperatureC);
+  Serial.print(F("°C "));
+  Serial.print(temperatureF);
+  Serial.println(F("°F"));
+
+  // Tampilkan data di LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Humi: ");
+  lcd.print(humidity);
+  lcd.print("%");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Temp: ");
+  lcd.print(temperatureC);
+  lcd.print("C");
+
+  // Logika untuk Buzzer
+  if (temperatureC > 50 || humidity > 60) {
+    digitalWrite(BUZZER_PIN, HIGH); // Nyalakan buzzer
+    Serial.println(F("Warning! High Temp/Humidity!"));
+  } else {
+    digitalWrite(BUZZER_PIN, LOW);  // Matikan buzzer
+  }
+}
